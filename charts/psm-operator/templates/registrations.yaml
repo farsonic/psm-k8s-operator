@@ -1,0 +1,75 @@
+{{- range .Values.registrations }}
+{{- if .enabled }}
+---
+apiVersion: psm-operator.psm.microseglab.com/v1alpha1
+kind: PsmWorkloadRegistration
+metadata:
+  name: {{ .name }}
+  namespace: default
+spec:
+  psmServer:
+    host: {{ $.Values.psmServer.host }}
+    tenant: {{ $.Values.psmServer.tenant }}
+    credentialsSecretRef:
+      name: {{ $.Values.psmServer.credentialsSecret.name }}
+  podSelector:
+    matchLabels: {}
+  networkContext:
+    includePrimaryInterface: false
+    macvlanInterfaces:
+    - networkAttachmentName: "net1"
+      psmNetworkName: {{ .networkName }}
+      vlanId: {{ .vlanId }}
+      psmNetworkRedirection: {{ .autoCreateNetwork }}
+      {{- if .autoCreateNetwork }}
+      psmVirtualRouter: {{ .virtualRouter }}
+      networkSubnet: {{ .subnet }}
+      gatewayIp: {{ .gateway }}
+      {{- end }}
+  labelMapping:
+    includeAllLabels: true
+  payloadTemplate: |
+    {
+      "kind": null,
+      "api-version": null,
+      "meta": {
+        "name": "{{ "{{ .Pod.Name }}" }}",
+        "tenant": null,
+        "namespace": null,
+        "generation-id": null,
+        "resource-version": null,
+        "uuid": null,
+        "labels": {
+          {{ "{{- range $key, $value := .Labels }}" }}
+          {{ "{{- if $key }}" }}
+          "{{ "{{ $key }}" }}": "{{ "{{ $value }}" }}",
+          {{ "{{- end }}" }}
+          {{ "{{- end }}" }}
+          "managed-by": "psm-operator"
+        },
+        "self-link": null,
+        "display-name": null
+      },
+      "spec": {
+        "host-name": "{{ "{{ .Pod.Spec.NodeName }}" }}",
+        "interfaces": [
+          {{ "{{- range $i, $intf := .Interfaces }}" }}
+          {{ "{{- if $i }}" }},{{ "{{ end }}" }}
+          {
+            "mac-address": "{{ "{{ $intf.MACAddress }}" }}",
+            "micro-seg-vlan": null,
+            "external-vlan": {{ .vlanId }},
+            "ip-addresses": [
+              "{{ "{{ $intf.IPAddress }}" }}"
+            ],
+            "network": null,
+            "vni": null
+          }
+          {{ "{{- end }}" }}
+        ],
+        "migration-timeout": "3m",
+        "dscInterfaces": null
+      }
+    }
+{{- end }}
+{{- end }}

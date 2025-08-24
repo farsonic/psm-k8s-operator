@@ -1,0 +1,16 @@
+apiVersion: v2
+name: psm-operator
+description: A Kubernetes operator for PSM workload and network registration
+type: application
+version: 0.1.0
+appVersion: "v4"
+keywords:
+  - psm
+  - networking
+  - macvlan
+home: https://github.com/farsonic/psm-k8s-operator
+sources:
+  - https://github.com/farsonic/psm-k8s-operator
+maintainers:
+  - name: Francois Prowse
+    email: farsonic@gmail.com
