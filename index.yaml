@@ -3,9 +3,9 @@ entries:
   psm-operator:
   - apiVersion: v2
     appVersion: v0.2.0
-    created: "2025-08-24T23:07:28.131477718Z"
+    created: "2025-08-24T23:11:01.129743828Z"
     description: A Helm chart for PSM Kubernetes Operator
-    digest: dd6f1fda42455f1b8623ef7cac7d937f2dbe4789a45e4824859fd1804c97acf7
+    digest: cc35cb58ff95ea17b6781ebf4e350f20f6e609d4e8e8acaf59815fa5ecb17561
     home: https://github.com/farsonic/psm-k8s-operator
     keywords:
     - psm
@@ -21,4 +21,4 @@ entries:
     urls:
     - https://farsonic.github.io/psm-k8s-operator/psm-operator-0.2.0.tgz
     version: 0.2.0
-generated: "2025-08-24T23:07:28.131111917Z"
+generated: "2025-08-24T23:11:01.129435757Z"
