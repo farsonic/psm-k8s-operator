@@ -1,0 +1,243 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: psmworkloadregistrations.psm-operator.psm.microseglab.com
+spec:
+  group: psm-operator.psm.microseglab.com
+  names:
+    kind: PsmWorkloadRegistration
+    listKind: PsmWorkloadRegistrationList
+    plural: psmworkloadregistrations
+    singular: psmworkloadregistration
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.psmServer.host
+      name: PSM Host
+      type: string
+    - jsonPath: .status.activeWorkloads
+      name: Active Workloads
+      type: integer
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.lastSyncTime
+      name: Last Sync
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PsmWorkloadRegistration is the Schema for the psmworkloadregistrations
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PsmWorkloadRegistrationSpec defines the desired state of
+              PsmWorkloadRegistration
+            properties:
+              labelMapping:
+                description: Label mapping configuration
+                properties:
+                  includeAllLabels:
+                    description: 'Include all pod labels (default: false)'
+                    type: boolean
+                  labelPrefixes:
+                    description: Include labels with specific prefixes
+                    items:
+                      type: string
+                    type: array
+                  specificLabels:
+                    additionalProperties:
+                      type: string
+                    description: Map specific pod labels to PSM labels (key = pod
+                      label, value = PSM label)
+                    type: object
+                type: object
+              networkContext:
+                description: Network context configuration
+                properties:
+                  includePrimaryInterface:
+                    description: Include the primary pod interface (eth0) in workload
+                      registration
+                    type: boolean
+                  macvlanInterfaces:
+                    description: List of MACVLAN interfaces to monitor and register
+                    items:
+                      description: MacvlanInterfaceSpec defines a specific MACVLAN
+                        interface to monitor
+                      properties:
+                        gatewayIp:
+                          description: Gateway IP for the PSM network
+                          type: string
+                        networkAttachmentName:
+                          description: |-
+                            Network attachment name (e.g., "net1", "net2")
+                            This corresponds to the interface name in the k8s.v1.cni.cncf.io/network-status annotation
+                          type: string
+                        networkSubnet:
+                          description: Network subnet for PSM network creation (CIDR
+                            format, e.g., "192.168.22.0/24")
+                          type: string
+                        psmNetworkName:
+                          description: PSM network name for this interface
+                          type: string
+                        psmNetworkRedirection:
+                          default: false
+                          description: PSM Network Redirection - if true, ensure network
+                            exists in PSM
+                          type: boolean
+                        psmVirtualRouter:
+                          description: PSM Virtual Router (VRF) for the network (required
+                            if psmNetworkRedirection=true)
+                          type: string
+                        vlanId:
+                          description: VLAN ID for this interface (preferred over
+                            network name)
+                          maximum: 4094
+                          minimum: 1
+                          type: integer
+                      required:
+                      - networkAttachmentName
+                      type: object
+                    type: array
+                  podNetworkName:
+                    description: Pod network name for primary interface (used when
+                      includePrimaryInterface=true)
+                    type: string
+                type: object
+              payloadTemplate:
+                description: |-
+                  Template for the PSM API payload (Go template format)
+                  The template has access to:
+                  - .Pod: the Kubernetes Pod object
+                  - .NetworkContext: the NetworkContextSpec
+                  - .Interfaces: []NetworkInterface with extracted interfaces
+                  - .Labels: map[string]string with extracted labels
+                type: string
+              podSelector:
+                description: Pod selector for which pods to manage
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              psmServer:
+                description: PSM server connection details
+                properties:
+                  credentialsSecretRef:
+                    description: |-
+                      Reference to a Kubernetes Secret in the same namespace
+                      that holds the username and password. The secret must contain
+                      keys named 'username' and 'password'.
+                    properties:
+                      name:
+                        description: Name of the secret
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  host:
+                    description: Hostname or IP address of the PSM server
+                    type: string
+                  tenant:
+                    description: PSM tenant (optional, defaults to "default")
+                    type: string
+                required:
+                - credentialsSecretRef
+                - host
+                type: object
+            required:
+            - networkContext
+            - payloadTemplate
+            - podSelector
+            - psmServer
+            type: object
+          status:
+            description: PsmWorkloadRegistrationStatus defines the observed state
+              of PsmWorkloadRegistration
+            properties:
+              activeWorkloads:
+                description: Number of active workloads
+                type: integer
+              lastSyncTime:
+                description: Last synchronization time
+                format: date-time
+                type: string
+              message:
+                description: Human-readable message about current status
+                type: string
+              phase:
+                description: Current phase of the registration
+                type: string
+              synchronizedPods:
+                description: List of pod names currently synchronized with PSM
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
