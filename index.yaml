@@ -2,16 +2,15 @@ apiVersion: v1
 entries:
   psm-operator:
   - apiVersion: v2
-    appVersion: v0.1.0
-    created: "2025-08-24T22:53:59.930413106Z"
-    description: A Kubernetes operator for Proxmox Service Mesh (PSM) workload registration
-    digest: 8dc51f5cd7da91f0d417fa1f3959d0a8d2e204efd8bfbfffbccb8c52fe02a1ac
+    appVersion: v0.2.0
+    created: "2025-08-24T23:07:28.131477718Z"
+    description: A Helm chart for PSM Kubernetes Operator
+    digest: dd6f1fda42455f1b8623ef7cac7d937f2dbe4789a45e4824859fd1804c97acf7
     home: https://github.com/farsonic/psm-k8s-operator
     keywords:
     - psm
-    - proxmox
+    - operator
     - networking
-    - macvlan
     maintainers:
     - name: farsonic
       url: https://github.com/farsonic
@@ -20,6 +19,6 @@ entries:
     - https://github.com/farsonic/psm-k8s-operator
     type: application
     urls:
-    - https://farsonic.github.io/psm-k8s-operator/psm-operator-0.1.0.tgz
-    version: 0.1.0
-generated: "2025-08-24T22:53:59.930198142Z"
+    - https://farsonic.github.io/psm-k8s-operator/psm-operator-0.2.0.tgz
+    version: 0.2.0
+generated: "2025-08-24T23:07:28.131111917Z"
