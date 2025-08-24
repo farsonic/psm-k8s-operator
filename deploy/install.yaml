@@ -1,0 +1,222 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: psm-operator-system
+---
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: psm-operator-controller-manager
+  namespace: psm-operator-system
+---
+# ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: psm-operator-manager-role
+rules:
+- apiGroups: ["psm-operator.psm.microseglab.com"]
+  resources: ["psmworkloadregistrations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["psm-operator.psm.microseglab.com"]
+  resources: ["psmworkloadregistrations/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["psm-operator.psm.microseglab.com"]
+  resources: ["psmworkloadregistrations/finalizers"]
+  verbs: ["update"]
+- apiGroups: [""]
+  resources: ["pods", "nodes", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: psm-operator-manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: psm-operator-manager-role
+subjects:
+- kind: ServiceAccount
+  name: psm-operator-controller-manager
+  namespace: psm-operator-system
+---
+# Leader Election Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: psm-operator-leader-election-role
+  namespace: psm-operator-system
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# Leader Election RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psm-operator-leader-election-rolebinding
+  namespace: psm-operator-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: psm-operator-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: psm-operator-controller-manager
+  namespace: psm-operator-system
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psm-operator-controller-manager
+  namespace: psm-operator-system
+  labels:
+    control-plane: controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      serviceAccountName: psm-operator-controller-manager
+      containers:
+      - name: manager
+        image: ghcr.io/farsonic/psm-operator:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - /manager
+        args:
+        - --leader-elect
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+# PSM Credentials Secret (template - users must update)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: psm-credentials
+  namespace: default
+type: Opaque
+stringData:
+  username: admin
+  password: CHANGE_ME_PSM_PASSWORD  # <-- Users must change this
+---
+# Sample PsmWorkloadRegistration for VLAN 22
+apiVersion: psm-operator.psm.microseglab.com/v1alpha1
+kind: PsmWorkloadRegistration
+metadata:
+  name: all-macvlan-vlan22
+  namespace: default
+spec:
+  psmServer:
+    host: "CHANGE_ME_PSM_IP"  # <-- Users must change this
+    tenant: "default"
+    credentialsSecretRef:
+      name: psm-credentials
+  podSelector:
+    matchLabels: {}  # Empty selector matches all pods
+  networkContext:
+    includePrimaryInterface: false
+    macvlanInterfaces:
+    - networkAttachmentName: "net1"
+      psmNetworkName: "vlan-22"
+      vlanId: 22
+      psmNetworkRedirection: false
+  labelMapping:
+    includeAllLabels: true
+  payloadTemplate: |
+    {
+      "kind": null,
+      "api-version": null,
+      "meta": {
+        "name": "{{ .Pod.Name }}",
+        "tenant": null,
+        "namespace": null,
+        "generation-id": null,
+        "resource-version": null,
+        "uuid": null,
+        "labels": {
+          {{- range $key, $value := .Labels }}
+          {{- if $key }}
+          "{{ $key }}": "{{ $value }}",
+          {{- end }}
+          {{- end }}
+          "managed-by": "psm-operator"
+        },
+        "self-link": null,
+        "display-name": null
+      },
+      "spec": {
+        "host-name": "{{ .Pod.Spec.NodeName }}",
+        "interfaces": [
+          {{- range $i, $intf := .Interfaces }}
+          {{- if $i }},{{ end }}
+          {
+            "mac-address": "{{ $intf.MACAddress }}",
+            "micro-seg-vlan": null,
+            "external-vlan": 22,
+            "ip-addresses": [
+              "{{ $intf.IPAddress }}"
+            ],
+            "network": null,
+            "vni": null
+          }
+          {{- end }}
+        ],
+        "migration-timeout": "3m",
+        "dscInterfaces": null
+      }
+    }
