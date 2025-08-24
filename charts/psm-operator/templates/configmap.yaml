@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "psm-operator.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "psm-operator.labels" . | nindent 4 }}
+data:
+  psm_host: {{ .Values.psmServer.host | quote }}
+  psm_port: {{ .Values.psmServer.port | default "443" | quote }}
+  psm_username: {{ .Values.psmServer.credentialsSecret.username | default "admin" | quote }}
