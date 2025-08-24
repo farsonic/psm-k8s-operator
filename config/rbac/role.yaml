@@ -1,0 +1,48 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - pods
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - psm-operator.psm.microseglab.com
+  resources:
+  - psmworkloadregistrations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - psm-operator.psm.microseglab.com
+  resources:
+  - psmworkloadregistrations/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - psm-operator.psm.microseglab.com
+  resources:
+  - psmworkloadregistrations/status
+  verbs:
+  - get
+  - patch
+  - update
