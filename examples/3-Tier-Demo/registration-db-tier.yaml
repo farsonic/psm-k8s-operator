@@ -1,0 +1,74 @@
+# Profile for Database Server Pods
+# Connects only to the secure Database Network (VLAN 22)
+apiVersion: psm-operator.psm.microseglab.com/v1alpha1
+kind: PsmWorkloadRegistration
+metadata:
+  name: db-tier-profile
+  namespace: default
+spec:
+  psmServer:
+    host: 192.168.0.58
+    tenant: default
+    credentialsSecretRef:
+      name: psm-credentials
+  podSelector:
+    matchLabels:
+      psm: "True"
+      tier: db
+  networkContext:
+    macvlanInterfaces:
+      # Connection to the secure database network
+      - networkAttachmentName: "macvlan-vlan22"
+        psmNetworkName: "db-network"
+        vlanId: 22
+        psmNetworkRedirection: true
+        psmVirtualRouter: "default"
+        networkSubnet: "192.168.22.0/24"
+        gatewayIp: "192.168.22.1"
+  labelMapping:
+    includeAllLabels: true
+  payloadTemplate: |
+    {
+      "kind": null,
+      "api-version": null,
+      "meta": {
+        "name": "{{.Pod.Name}}",
+        "tenant": null,
+        "namespace": null,
+        "generation-id": null,
+        "resource-version": null,
+        "uuid": null,
+        "labels": {
+          {{- $first := true}}
+          {{- range $key, $value := .Labels}}
+          {{- if not $first}},{{end}}
+          "{{$key}}": "{{$value}}"
+          {{- $first = false}}
+          {{- end}}
+        },
+        "self-link": null,
+        "display-name": null
+      },
+      "spec": {
+        "host-name": "{{.Pod.Spec.NodeName}}",
+        "interfaces": [
+          {{- $first := true}}
+          {{- range $i, $iface := .Interfaces}}
+          {{- $macvlanSpec := index $.NetworkContext.MacvlanInterfaces $i }}
+          {{- if not $first}},{{end}}
+          {
+            "mac-address": "{{$iface.MACAddress}}",
+            "micro-seg-vlan": null,
+            "external-vlan": {{$macvlanSpec.VlanID}},
+            "ip-addresses": ["{{$iface.IPAddress}}"],
+            "network": null,
+            "vni": null
+          }
+          {{- $first = false}}
+          {{- end}}
+        ],
+        "migration-timeout": "3m",
+        "dscInterfaces": null
+      }
+    }
+

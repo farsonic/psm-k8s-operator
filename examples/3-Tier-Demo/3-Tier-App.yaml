@@ -1,0 +1,63 @@
+# Pod definition for the Web Tier
+# - Labeled with tier: web
+# - Attaches to dmz-network (VLAN 20) and app-network (VLAN 21)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server-pod
+  namespace: default
+  labels:
+    psm: "True"
+    tier: web
+  annotations:
+    # Explicitly name the interfaces to match the NetworkAttachmentDefinition names
+    k8s.v1.cni.cncf.io/networks: macvlan-vlan20@macvlan-vlan20, macvlan-vlan21@macvlan-vlan21
+spec:
+  containers:
+  - name: web-container
+    image: nginx:1.25-alpine
+    ports:
+    - containerPort: 80
+---
+# Pod definition for the Application Tier
+# - Labeled with tier: app
+# - Attaches to app-network (VLAN 21) and db-network (VLAN 22)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app-server-pod
+  namespace: default
+  labels:
+    psm: "True"
+    tier: app
+  annotations:
+    # Explicitly name the interfaces to match the NetworkAttachmentDefinition names
+    k8s.v1.cni.cncf.io/networks: macvlan-vlan21@macvlan-vlan21, macvlan-vlan22@macvlan-vlan22
+spec:
+  containers:
+  - name: app-container
+    image: busybox:1.36
+    # Keep the container running
+    command: ["/bin/sh", "-c", "sleep 3600"]
+---
+# Pod definition for the Database Tier
+# - Labeled with tier: db
+# - Attaches only to the secure db-network (VLAN 22)
+apiVersion: v1
+kind: Pod
+metadata:
+  name: db-server-pod
+  namespace: default
+  labels:
+    psm: "True"
+    tier: db
+  annotations:
+    # Explicitly name the interface to match the NetworkAttachmentDefinition name
+    k8s.v1.cni.cncf.io/networks: macvlan-vlan22@macvlan-vlan22
+spec:
+  containers:
+  - name: db-container
+    image: busybox:1.36
+    # Keep the container running
+    command: ["/bin/sh", "-c", "sleep 3600"]
+
